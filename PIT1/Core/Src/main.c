@@ -598,7 +598,7 @@ void config_inicial_init(void){
 }
 
 void Do_action_cima_configInicial(void){
-    if(max_quant_alunos<99){
+    if(max_quant_alunos<MAX_ALUNOS_SYS){
         max_quant_alunos++;
         sprintf(max_quant_alunos_display, "%lu", max_quant_alunos);
         ST7735_WriteString(69, 30, max_quant_alunos_display, Font_11x18, BLACK, WHITE);
