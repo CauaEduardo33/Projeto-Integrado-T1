@@ -37,6 +37,10 @@
 #define MAX_TENT 3
 #define MAX_ALUNOS_FORA 3
 #define MAX_ALUNOS_SYS 99
+
+#define TXTCOLOR WHITE
+#define BGCOLOR BLACK
+
 #define LER_BTNDIR()   HAL_GPIO_ReadPin(BTNDIR_GPIO_Port, BTNDIR_Pin)
 #define LER_BTNESQ()   HAL_GPIO_ReadPin(BTNESQ_GPIO_Port, BTNESQ_Pin)
 #define LER_BTNCIMA()  HAL_GPIO_ReadPin(BTNCIMA_GPIO_Port, BTNCIMA_Pin)
@@ -78,6 +82,7 @@ volatile uint8_t config_inicial = 0;
 volatile uint8_t is_init_config_inicial=0;
 
 volatile uint8_t exe_aula = 0;
+volatile uint8_t is_init_exe_aula = 0;
 volatile uint8_t encerr = 0;
 
 uint8_t user_digit = 0;
@@ -102,10 +107,16 @@ int8_t sixth_digit_num= -1;
 
 uint8_t tentativas_senha = 0;
 
-uint32_t max_quant_alunos=0;
-char max_quant_alunos_display[4];
+char max_quant_alunos_display[6];
 
-uint32_t matricula;
+uint8_t porcentagem;
+uint16_t max_quant_alunos=0;
+uint16_t quant_presentes=0;
+uint8_t alunos_fora=0;
+
+
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -134,6 +145,8 @@ void Do_action_dir_configInicial(void);
 
 void config_inicial_init(void);
 
+void DrawProgressBar(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+void update_aula_status(void);
 
 
 
@@ -243,7 +256,10 @@ int main(void)
       }
 
       if(exe_aula){
-
+    	  if(!is_init_exe_aula) {
+    		  update_aula_status();
+    		  is_init_exe_aula=1;
+    	  }
       }
     /* USER CODE END WHILE */
 
@@ -427,8 +443,8 @@ void DebounceSwitch(GPIO_PinState raw, GPIO_PinState *debounced, uint8_t *counte
         }
     }
 }
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
     GPIO_PinState raw_btncima= LER_BTNCIMA();
     GPIO_PinState old_btncima = Debounced_BTNCIMA;
     DebounceSwitch(raw_btncima, &Debounced_BTNCIMA, &Count_BTNCIMA);
@@ -459,16 +475,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 }
 
 void Aula_init(void){
-    ST7735_FillScreen(WHITE);
-    ST7735_WriteString(0, 0, "Clique em qualquer botao para iniciar.", Font_7x10, BLACK, WHITE);
+    ST7735_FillScreen(BGCOLOR);
+    ST7735_WriteString(0, 0, "Clique em qualquer botao para iniciar.", Font_7x10, TXTCOLOR, BGCOLOR);
 }
 
 void finish_incioAula(void){
     inicio_aula = 0;
     estagio_senha = 1;
-    ST7735_FillScreen(WHITE);
-    ST7735_WriteString(0, 0, "Insira a senha", Font_7x10, BLACK, WHITE);
-    ST7735_WriteString(0, 15, user_digit_display, Font_7x10, BLACK, WHITE);
+    ST7735_FillScreen(BGCOLOR);
+    ST7735_WriteString(0, 0, "Insira a senha", Font_7x10, TXTCOLOR, BGCOLOR);
+    ST7735_WriteString(0, 15, user_digit_display, Font_7x10, TXTCOLOR, BGCOLOR);
     consume_btn_events();
 }
 
@@ -486,21 +502,21 @@ void AvaliarSenha(uint32_t senha){
         tentativas_senha=0;
         estagio_senha =0;
         config_inicial=1;
-        ST7735_FillScreenFast(WHITE);
-        ST7735_WriteString(0, 0, "Senha Correta!",Font_16x26 , BLACK, WHITE);
+        ST7735_FillScreenFast(BGCOLOR);
+        ST7735_WriteString(0, 0, "Senha Correta!",Font_16x26 , TXTCOLOR, BGCOLOR);
         HAL_Delay(2000);
-        ST7735_FillScreenFast(WHITE);
+        ST7735_FillScreenFast(BGCOLOR);
 
     }
 
     else{
-        ST7735_FillScreenFast(WHITE);
-        ST7735_WriteString(0, 0, "Senha Incorreta!",Font_16x26 , BLACK, WHITE);
+        ST7735_FillScreenFast(BGCOLOR);
+        ST7735_WriteString(0, 0, "Senha Incorreta!",Font_16x26 , TXTCOLOR, BGCOLOR);
         HAL_Delay(1000);
 
         if(tentativas_senha==MAX_TENT){
-            ST7735_FillScreenFast(WHITE);
-            ST7735_WriteString(0, 0, "Aguarde 3 segundos ate inserir a senha        novamente",Font_11x18 , BLACK, WHITE);
+            ST7735_FillScreenFast(BGCOLOR);
+            ST7735_WriteString(0, 0, "Aguarde 3 segundos ate inserir a senha        novamente",Font_11x18 , TXTCOLOR, BGCOLOR);
             HAL_Delay(3000);
 
         }
@@ -508,9 +524,9 @@ void AvaliarSenha(uint32_t senha){
         first_digit_num = -1; second_digit_num =-1; third_digit_num=-1; forth_digit_num=-1; fifth_digit_num=-1; sixth_digit_num=-1;
 
 
-        ST7735_FillScreen(WHITE);
-        ST7735_WriteString(0, 0, "Insira a senha", Font_7x10, BLACK, WHITE);
-        ST7735_WriteString(0, 15, user_digit_display , Font_7x10, BLACK, WHITE);
+        ST7735_FillScreen(BGCOLOR);
+        ST7735_WriteString(0, 0, "Insira a senha", Font_7x10, TXTCOLOR, BGCOLOR);
+        ST7735_WriteString(0, 15, user_digit_display , Font_7x10, TXTCOLOR, BGCOLOR);
 
     }
 }
@@ -520,34 +536,34 @@ void Do_action_dir_senha(uint32_t senha){
      if(first_digit_num<0) {
          first_digit[0] = user_digit+48;
          first_digit_num = user_digit;
-         ST7735_WriteString(59, 45, first_digit, Font_7x10, BLACK, WHITE);
+         ST7735_WriteString(59, 45, first_digit, Font_7x10, TXTCOLOR, BGCOLOR);
 
      }
      else if(second_digit_num<0){
          second_digit[0] = user_digit+48;
          second_digit_num = user_digit;
-         ST7735_WriteString(59+7, 45, second_digit, Font_7x10, BLACK, WHITE);
+         ST7735_WriteString(59+7, 45, second_digit, Font_7x10, TXTCOLOR, BGCOLOR);
 
      }
      else if(third_digit_num<0){
          third_digit[0] = user_digit+48;
          third_digit_num = user_digit;
-         ST7735_WriteString(2*7+59, 45, third_digit, Font_7x10, BLACK, WHITE);
+         ST7735_WriteString(2*7+59, 45, third_digit, Font_7x10, TXTCOLOR, BGCOLOR);
      }
      else if(forth_digit_num<0){
          forth_digit[0] = user_digit+48;
          forth_digit_num = user_digit;
-         ST7735_WriteString(3*7+59, 45, forth_digit, Font_7x10, BLACK, WHITE);
+         ST7735_WriteString(3*7+59, 45, forth_digit, Font_7x10, TXTCOLOR, BGCOLOR);
      }
      else if(fifth_digit_num<0){
          fifth_digit[0] = user_digit + 48;
          fifth_digit_num = user_digit;
-         ST7735_WriteString(4*7+59, 45, fifth_digit, Font_7x10, BLACK, WHITE);
+         ST7735_WriteString(4*7+59, 45, fifth_digit, Font_7x10, TXTCOLOR, BGCOLOR);
      }
      else if(sixth_digit_num<0){
          sixth_digit[0] = user_digit + 48;
          sixth_digit_num = user_digit;
-         ST7735_WriteString(5*7+59, 45, sixth_digit, Font_7x10, BLACK, WHITE);
+         ST7735_WriteString(5*7+59, 45, sixth_digit, Font_7x10, TXTCOLOR, BGCOLOR);
 
      }
      else{
@@ -563,7 +579,7 @@ void Do_action_cima_senha(void){
 
      user_digit_display[0]= user_digit+48;
 
-     ST7735_WriteString(0, 20, user_digit_display, Font_7x10, BLACK, WHITE);
+     ST7735_WriteString(0, 20, user_digit_display, Font_7x10, TXTCOLOR, BGCOLOR);
 
      consume_btn_events();
 }
@@ -575,33 +591,33 @@ void Do_action_baixo_senha(void){
      user_digit_display[0]= user_digit+48;
 
 
-     ST7735_WriteString(0, 20, user_digit_display, Font_7x10, BLACK, WHITE);
+     ST7735_WriteString(0, 20, user_digit_display, Font_7x10, TXTCOLOR, BGCOLOR);
 
      consume_btn_events();
 }
 
 void Do_action_esq_senha(void){
-    if(sixth_digit_num>=0) ST7735_FillRectangleFast(5*7+59, 45, 5*7+59+7, 50, WHITE);
-    else if(fifth_digit_num>=0) ST7735_FillRectangleFast(4*7+59, 45, 4*7+59+7, 55, WHITE);
-    else if(forth_digit_num>=0) ST7735_FillRectangleFast(3*7+59, 45, 3*7+59+7, 55, WHITE);
-    else if(third_digit_num>=0) ST7735_FillRectangleFast(2*7+59, 45, 2*7+59+7, 55, WHITE);
-    else if(second_digit_num>=0) ST7735_FillRectangleFast(1*7+59, 45, 1*7+59+7, 55, WHITE);
-    else if(first_digit_num>=0) ST7735_FillRectangleFast(59, 45, +59+7, 55, WHITE);
+    if(sixth_digit_num>=0) ST7735_FillRectangleFast(5*7+59, 45, 5*7+59+7, 50, BGCOLOR);
+    else if(fifth_digit_num>=0) ST7735_FillRectangleFast(4*7+59, 45, 4*7+59+7, 55, BGCOLOR);
+    else if(forth_digit_num>=0) ST7735_FillRectangleFast(3*7+59, 45, 3*7+59+7, 55, BGCOLOR);
+    else if(third_digit_num>=0) ST7735_FillRectangleFast(2*7+59, 45, 2*7+59+7, 55, BGCOLOR);
+    else if(second_digit_num>=0) ST7735_FillRectangleFast(1*7+59, 45, 1*7+59+7, 55, BGCOLOR);
+    else if(first_digit_num>=0) ST7735_FillRectangleFast(59, 45, +59+7, 55, BGCOLOR);
     consume_btn_events();
 }
 
 void config_inicial_init(void){
-    ST7735_WriteString(0, 0, "Max. de alunos na sala", Font_7x10, BLACK, WHITE);
-    sprintf(max_quant_alunos_display, "%lu", max_quant_alunos);
-    ST7735_WriteString(69, 30, max_quant_alunos_display, Font_11x18, BLACK, WHITE);
+    ST7735_WriteString(0, 0, "Max. de alunos na sala", Font_7x10, TXTCOLOR, BGCOLOR);
+    sprintf(max_quant_alunos_display, "%u", max_quant_alunos);
+    ST7735_WriteString(69, 30, max_quant_alunos_display, Font_11x18, TXTCOLOR, BGCOLOR);
 
 }
 
 void Do_action_cima_configInicial(void){
     if(max_quant_alunos<MAX_ALUNOS_SYS){
         max_quant_alunos++;
-        sprintf(max_quant_alunos_display, "%lu", max_quant_alunos);
-        ST7735_WriteString(69, 30, max_quant_alunos_display, Font_11x18, BLACK, WHITE);
+        sprintf(max_quant_alunos_display, "%u", max_quant_alunos);
+        ST7735_WriteString(69, 30, max_quant_alunos_display, Font_11x18, TXTCOLOR, BGCOLOR);
 
     }
     consume_btn_events();
@@ -610,8 +626,8 @@ void Do_action_baixo_configInicial(void){
 
     if(max_quant_alunos>0){
         max_quant_alunos--;
-        sprintf(max_quant_alunos_display, "%lu", max_quant_alunos);
-        ST7735_WriteString(69, 30, max_quant_alunos_display, Font_11x18, BLACK, WHITE);
+        sprintf(max_quant_alunos_display, "%u", max_quant_alunos);
+        ST7735_WriteString(69, 30, max_quant_alunos_display, Font_11x18, TXTCOLOR, BGCOLOR);
 
 
     }
@@ -620,20 +636,57 @@ void Do_action_baixo_configInicial(void){
 void Do_action_dir_configInicial(void){
     consume_btn_events();
     if(max_quant_alunos==0){
-     ST7735_FillScreenFast(WHITE);
-     ST7735_WriteString(0, 0, "A sala deve possuir ao menos 1 aluno.", Font_7x10, BLACK, WHITE);
+     ST7735_FillScreenFast(BGCOLOR);
+     ST7735_WriteString(0, 0, "A sala deve possuir ao menos 1 aluno.", Font_7x10, TXTCOLOR, BGCOLOR);
      HAL_Delay(5000);
      config_inicial_init();
 }
     else{
-        ST7735_FillScreenFast(WHITE);
-        ST7735_WriteString(0, 0, "Max. de alunos salvo.", Font_7x10, BLACK, WHITE);
+        ST7735_FillScreenFast(BGCOLOR);
+        ST7735_WriteString(0, 0, "Max. de alunos salvo.", Font_7x10, TXTCOLOR, BGCOLOR);
         HAL_Delay(5000);
         config_inicial =0;
         exe_aula=1;
     }
 
     }
+
+void DrawProgressBar(uint16_t x, uint16_t y, uint16_t w, uint16_t h)
+{
+    porcentagem = (quant_presentes * 100) / max_quant_alunos;
+    ST7735_FillRectangle(x, y, w, 1, WHITE);
+    ST7735_FillRectangle(x, y + h, w, 1, WHITE);
+    ST7735_FillRectangle(x, y, 1, h, WHITE);
+    ST7735_FillRectangle(x + w, y, 1, h, WHITE);
+    ST7735_FillRectangle(x+1, y+1, w-2, h-2, BLACK);
+    uint16_t fill = (w * porcentagem) / 100;
+
+   if (fill > 2)
+   {
+       ST7735_FillRectangle(x+1, y+1, fill-2, h-2, GREEN);
+   }
+}
+
+
+
+void update_aula_status(void){
+
+	ST7735_FillScreenFast(BGCOLOR);
+	char display_alunos_fora[10];
+	if(alunos_fora<MAX_ALUNOS_FORA) sprintf(display_alunos_fora, "FORA: %u", alunos_fora);
+	else sprintf(display_alunos_fora, "FORA: MAX");
+
+
+	char indicador_presentes[20];
+	sprintf(indicador_presentes ,"%d/%d", quant_presentes, max_quant_alunos);
+
+	DrawProgressBar(20, 70, 100, 15);
+	ST7735_WriteString(0, 0, indicador_presentes, Font_7x10, TXTCOLOR, BGCOLOR);
+    ST7735_WriteString(67, 0, display_alunos_fora, Font_7x10, TXTCOLOR, BGCOLOR);
+
+
+
+}
 /* USER CODE END 4 */
 
 /**
@@ -669,5 +722,4 @@ void assert_failed(uint8_t *file, uint32_t line)
 #endif /* USE_FULL_ASSERT */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-
 
