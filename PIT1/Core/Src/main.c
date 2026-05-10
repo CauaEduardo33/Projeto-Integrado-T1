@@ -83,7 +83,6 @@ volatile uint8_t is_init_config_inicial=0;
 
 volatile uint8_t exe_aula = 0;
 volatile uint8_t is_init_exe_aula = 0;
-volatile uint8_t encerr = 0;
 
 uint8_t user_digit = 0;
 char user_digit_display[2];
@@ -113,6 +112,9 @@ uint8_t porcentagem;
 uint16_t max_quant_alunos=0;
 uint16_t quant_presentes=0;
 uint8_t alunos_fora=0;
+uint8_t alunos_na_sala=0;
+
+uint32_t total_saidas=0;
 
 
 
@@ -147,8 +149,11 @@ void config_inicial_init(void);
 
 void DrawProgressBar(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 void update_aula_status(void);
+void Do_action_cima_exe_aula(void);
+void Do_action_esq_exe_aula(void);
+void Do_action_dir_exe_aula(void);
 
-
+void EncerrarAula(void);
 
 /* USER CODE END PFP */
 
@@ -260,7 +265,19 @@ int main(void)
     		  update_aula_status();
     		  is_init_exe_aula=1;
     	  }
-      }
+    	  else if(btn_event_BTNCIMA){
+    		  HAL_Delay(50);
+    		  if(btn_event_BTNBAIXO) EncerrarAula();
+    		  else Do_action_cima_exe_aula();
+    	  }
+    	  else if(btn_event_BTNBAIXO){
+    		  HAL_Delay(50);
+    		  if(btn_event_BTNCIMA) EncerrarAula();
+
+    	  }
+    	  else if(btn_event_BTNDIR) Do_action_dir_exe_aula();
+    	  else if(btn_event_BTNESQ) Do_action_esq_exe_aula();
+    	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -677,16 +694,83 @@ void update_aula_status(void){
 	else sprintf(display_alunos_fora, "FORA: MAX");
 
 
-	char indicador_presentes[20];
-	sprintf(indicador_presentes ,"%d/%d", quant_presentes, max_quant_alunos);
+	char indicador_em_sala[20];
+	sprintf(indicador_em_sala ,"%u/%u",alunos_na_sala, max_quant_alunos);
 
 	DrawProgressBar(20, 70, 100, 15);
-	ST7735_WriteString(0, 0, indicador_presentes, Font_7x10, TXTCOLOR, BGCOLOR);
+	ST7735_WriteString(0, 0, indicador_em_sala, Font_7x10, TXTCOLOR, BGCOLOR);
     ST7735_WriteString(67, 0, display_alunos_fora, Font_7x10, TXTCOLOR, BGCOLOR);
 
 
 
 }
+
+void Do_action_cima_exe_aula(void){
+	consume_btn_events();
+	ST7735_FillScreenFast(BGCOLOR);
+
+	if(quant_presentes==max_quant_alunos){
+
+		ST7735_WriteString(0, 0, "Todos alunos presentes", Font_7x10, TXTCOLOR, BGCOLOR);
+		HAL_Delay(5000);
+
+	}
+
+	else{
+		quant_presentes++;
+		alunos_na_sala++;
+	    uint16_t matricula = 100 +(rand() % (999-100+1));
+	    char display_matricula[20];
+	    sprintf(display_matricula, "Matricula: %u", matricula);
+	    ST7735_WriteString(0, 0, "Aluno identificado!", Font_7x10, TXTCOLOR, BGCOLOR);
+	    ST7735_WriteString(0, 15, display_matricula, Font_7x10, TXTCOLOR, BGCOLOR);
+	    HAL_Delay(5000);
+
+	}
+
+	update_aula_status();
+}
+
+void Do_action_esq_exe_aula(void){
+	consume_btn_events();
+	if(alunos_fora==MAX_ALUNOS_FORA || alunos_fora==quant_presentes ){
+		ST7735_FillScreenFast(BGCOLOR);
+		ST7735_WriteString(0, 0, "Maximo de alunos fora.", Font_7x10, TXTCOLOR, BGCOLOR);
+		HAL_Delay(3000);
+		}
+	else{
+		alunos_na_sala--;
+		alunos_fora++;
+		total_saidas++;
+	}
+
+	update_aula_status();
+
+}
+
+void Do_action_dir_exe_aula(void){
+	consume_btn_events();
+	if(alunos_fora!=0){
+		alunos_fora--;
+		alunos_na_sala++;
+		update_aula_status();
+	}
+}
+
+void EncerrarAula(void){
+	consume_btn_events();
+	exe_aula=0;
+	ST7735_FillScreenFast(BGCOLOR);
+	char display_total_saidas[30];
+	sprintf(display_total_saidas, "Total de saidas %lu", total_saidas);
+	char display_registrados[30];
+	sprintf(display_registrados, "Alunos registrados: %u", quant_presentes);
+
+	ST7735_WriteString(0, 0, display_registrados, Font_7x10, TXTCOLOR, BGCOLOR);
+	ST7735_WriteString(0, 25, display_total_saidas, Font_7x10, TXTCOLOR, BGCOLOR);
+}
+
+
 /* USER CODE END 4 */
 
 /**
@@ -722,4 +806,3 @@ void assert_failed(uint8_t *file, uint32_t line)
 #endif /* USE_FULL_ASSERT */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
-
