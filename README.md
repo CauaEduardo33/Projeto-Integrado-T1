@@ -84,8 +84,4 @@ Após `MAX_TENT` (3) tentativas incorretas de senha, a flag `blocked` é ativada
 
 ##  Integrantes do Grupo
 
-| Cauã Eduardo Silva e Thiago Pereira da Costa 
-|------|--------|
-| — | — |
-| — | — |
-| — | — |
+| Cauã Eduardo Silva e Thiago Pereira da Costa |
