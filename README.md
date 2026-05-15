@@ -53,7 +53,7 @@ Ao encerrar, o display exibe:
 - Microcontrolador: **STM32** (clock via HSI, 8 MHz)
 - Display: **ST7735** (comunicação SPI1)
 - Entradas: **4 botoeiras** com pull-up e debounce por software (via TIM2)
-- Timer: **TIM2** — interrupção a cada ~1 ms para debounce das botoeiras
+- Timer: **TIM2** — interrupção a cada ~5 ms para debounce das botoeiras
 
 ---
 
@@ -63,7 +63,7 @@ Ao encerrar, o display exibe:
 O fluxo do sistema é controlado por variáveis de estado (`inicio_aula`, `estagio_senha`, `config_inicial`, `exe_aula`), permitindo que o loop principal roteie as ações corretamente sem uso de `switch/case` global.
 
 ### Debounce por software
-O TIM2 dispara a cada ~1 ms. A função `DebounceSwitch` exige 20 leituras estáveis consecutivas antes de confirmar a mudança de estado de um botão, eliminando ruído mecânico.
+O TIM2 dispara a cada ~5 ms. A função `DebounceSwitch` exige 20 leituras estáveis consecutivas antes de confirmar a mudança de estado de um botão, eliminando ruído mecânico.
 
 ### Geração de senha aleatória
 A senha é gerada com `rand()` semeado por `HAL_GetTick()`, garantindo valores diferentes a cada execução. A faixa é de 100000 a 999999 (sempre 6 dígitos).
