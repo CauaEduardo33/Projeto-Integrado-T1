@@ -78,7 +78,7 @@ Após `MAX_TENT` (3) tentativas incorretas de senha, a flag `blocked` é ativada
 
 ##  Vídeo de Apresentação
 
-📺 [Assista no YouTube](https://www.youtube.com/seu-link-aqui)
+📺 [Assista no YouTube](https://youtu.be/K5Q2NCuEUhg)
 
 ---
 
